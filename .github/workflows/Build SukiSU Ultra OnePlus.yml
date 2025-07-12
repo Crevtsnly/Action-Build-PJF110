@@ -8,9 +8,10 @@ on:
         required: true
         default: oneplus_ace2_pro_v
         options:
+          - oneplus_nord_ce4_lite_5g_v
           - oneplus_nord_ce4_v
-          - oneplus_ace_3v_v
           - oneplus_nord_4_v
+          - oneplus_ace_3v_v
           - oneplus_10_pro_v
           - oneplus_10t_v
           - oneplus_11r_v
@@ -25,10 +26,10 @@ on:
           - oneplus_13r
           - oneplus_ace3_pro_v
           - oneplus_ace5
-          - oneplus_pad2_v
           - oneplus_pad_pro_v
-          - oneplus_13
+          - oneplus_pad2_v
           - oneplus_ace5_pro
+          - oneplus_13
           - oneplus_13t
           - oneplus_13s
           - oneplus_pad_2_pro
@@ -42,16 +43,21 @@ on:
           - CI
           - Release
           - NoN
-      SUFFIX:
+      KSU_META:
         type: string
-        description: "自定义内核后缀 (不输入则使用随机字符串)"
+        description: "分支名/自定义版本标识"
         required: false
-        default: ""
+        default: "susfs-main/Numbersf"
       BUILD_TIME:
         type: string
-        description: "自定义构建时间 (输入F则使用当前时间)"
+        description: "自定义构建时间 (输入F使用当前时间)"
         required: false
         default: "Fri May 30 04:01:05 UTC 2025"
+      SUFFIX:
+        type: string
+        description: "自定义内核后缀 (不输入使用随机字符串)"
+        required: false
+        default: ""
       FAST_BUILD:
         type: boolean
         description: "是否启用极速构建？"
@@ -74,7 +80,7 @@ on:
         default: false
       ZRAM:
         type: boolean
-        description: "是否添加更多的ZRAM算法？"
+        description: "是否添加更多ZRAM算法？"
         required: true
         default: false
 
@@ -98,32 +104,30 @@ jobs:
           
           # Define valid combinations with base model only (no _v/_t/_u...)
           declare -A VALID_COMBINATIONS=(
-            ["oneplus_9"]="sm8350 lahaina android11 5.4"
-            ["oneplus_9_pro"]="sm8350 lahaina android11 5.4"
+            ["oneplus_nord_ce4_lite_5g"]="sm6375 blair android14 6.1"
+            ["oneplus_nord_ce4"]="sm7550 crow android14 5.15"
+            ["oneplus_nord_4"]="sm7675 pineapple android14 6.1"
+            ["oneplus_ace_3v"]="sm7675 pineapple android14 6.1"
             ["oneplus_10_pro"]="sm8450 waipio android12 5.10"
             ["oneplus_10t"]="sm8475 waipio android12 5.10"
-            ["oneplus_11"]="sm8550 kalama android13 5.15"
             ["oneplus_11r"]="sm8475 waipio android12 5.10"
-            ["oneplus_open"]="sm8550 kalama android13 5.15"
             ["oneplus_ace2"]="sm8475 waipio android12 5.10"
             ["oneplus_ace_pro"]="sm8475 waipio android12 5.10"
-            ["oneplus_ace2_pro"]="sm8550 kalama android13 5.15"
-            ["oneplus12"]="sm8650 pineapple android14 6.1"
+            ["oneplus_11"]="sm8550 kalama android13 5.15"
             ["oneplus_12r"]="sm8550 kalama android13 5.15"
-            ["oneplus_13"]="sm8750 sun android15 6.6"
-            ["oneplus_13r"]="sm8650 pineapple android14 6.1"
-            ["oneplus_13s"]="sm8750 sun android15 6.6"
-            ["oneplus_13t"]="sm8750 sun android15 6.6"
+            ["oneplus_ace2_pro"]="sm8550 kalama android13 5.15"
             ["oneplus_ace3"]="sm8550 kalama android13 5.15"
+            ["oneplus_open"]="sm8550 kalama android13 5.15"
+            ["oneplus12"]="sm8650 pineapple android14 6.1"
+            ["oneplus_13r"]="sm8650 pineapple android14 6.1"
             ["oneplus_ace3_pro"]="sm8650 pineapple android14 6.1"
             ["oneplus_ace5"]="sm8650 pineapple android14 6.1"
-            ["oneplus_ace5_pro"]="sm8750 sun android15 6.6"
-            ["oneplus_ace_3v"]="sm7675 pineapple android14 6.1"
-            ["oneplus_nord_3"]="sm8475 waipio android12 5.10"
-            ["oneplus_nord_4"]="sm7675 pineapple android14 6.1"
-            ["oneplus_nord_ce4"]="sm7550 crow android14 5.15"
-            ["oneplus_pad_pro"]="sm8550 kalama android13 5.15"
+            ["oneplus_pad_pro"]="sm8650 pineapple android14 6.1"
             ["oneplus_pad2"]="sm8650 pineapple android14 6.1"
+            ["oneplus_ace5_pro"]="sm8750 sun android15 6.6"
+            ["oneplus_13"]="sm8750 sun android15 6.6"
+            ["oneplus_13t"]="sm8750 sun android15 6.6"
+            ["oneplus_13s"]="sm8750 sun android15 6.6"
             ["oneplus_pad_2_pro"]="sm8750 sun android15 6.6"
             ["oneplus_pad_3"]="sm8750 sun android15 6.6"
           )
@@ -232,8 +236,9 @@ jobs:
           echo "Selected KERNEL_VERSION: ${{ env.KERNEL_VERSION }}"
           echo "Selected BUILD_METHOD: ${{ env.BUILD_METHOD }}"
           echo "Selected FILE: ${{ github.event.inputs.FILE }}"
-          echo "Custom SUFFIX: ${{ github.event.inputs.SUFFIX }}"
+          echo "Custom KSU_META: ${{ github.event.inputs.KSU_META }}"
           echo "Custom BUILD_TIME: ${{ github.event.inputs.BUILD_TIME }}"
+          echo "Custom SUFFIX: ${{ github.event.inputs.SUFFIX }}"
           echo "Selected SUSFS_CI: ${{ github.event.inputs.SUSFS_CI }}"
           echo "Selected VFS: ${{ github.event.inputs.VFS }}"
           echo "Selected KPM: ${{ github.event.inputs.KPM }}"
@@ -410,12 +415,37 @@ jobs:
       - name: Add SukiSU Ultra
         run: |
           cd kernel_workspace/kernel_platform
-          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
+
+          META="${{ github.event.inputs.KSU_META }}"
+          BRANCH_NAME="${META%%/*}"
+          CUSTOM_TAG="${META#*/}"
+          echo "分支名: $BRANCH_NAME"
+          echo "自定义版本标识: $CUSTOM_TAG"
+
+          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s "$BRANCH_NAME"
           cd ./KernelSU
-          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10700)
+
+          KSU_API_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/$BRANCH_NAME/kernel/Makefile" | \
+            grep -m1 "KSU_VERSION_API :=" | awk -F'= ' '{print $2}' | tr -d '[:space:]')
+          [[ -z "$KSU_API_VERSION" ]] && KSU_API_VERSION="3.1.7"
+
+          echo "KSU_API_VERSION=$KSU_API_VERSION" >> $GITHUB_ENV
+
+          KSU_VERSION_FULL="v$KSU_API_VERSION-$CUSTOM_TAG@$BRANCH_NAME"
+          echo "KSU_VERSION_FULL=$KSU_VERSION_FULL" >> $GITHUB_ENV
+
+          sed -i '/KSU_VERSION_API :=/d' kernel/Makefile
+          sed -i '/KSU_VERSION_FULL :=/d' kernel/Makefile
+
+          echo "KSU_VERSION_API := $KSU_API_VERSION" >> kernel/Makefile
+          echo "KSU_VERSION_FULL := $KSU_VERSION_FULL" >> kernel/Makefile
+
+          KSU_VERSION=$(expr $(git rev-list --count main 2>/dev/null || echo 13000) + 10700)
           echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-          export KSU_VERSION=$KSU_VERSION
-          sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+
+          echo "::group:: 最终 Makefile 中版本信息预览"
+          grep -A5 "KSU_VERSION_API" kernel/Makefile
+          echo "::endgroup::"
 
       - name: Apply Patches SukiSU Ultra
         run: |
@@ -515,7 +545,11 @@ jobs:
 
           # SukiSU Ultra配置
           echo "CONFIG_KSU=y" >> "$CONFIG_FILE"
-          echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
+
+          # KPM配置
+          if [ "${{ github.event.inputs.KPM }}" = "true" ]; then
+            echo "CONFIG_KPM=y" >> "$CONFIG_FILE"
+          fi
 
           # VFS配置
           if [ "${{ github.event.inputs.VFS }}" = "true" ]; then
